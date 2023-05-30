@@ -18,63 +18,93 @@ urls = ["https://www.esunbank.com.tw/bank/personal/deposit/rate/forex/foreign-ex
 
 class Calculator:
 
-    def __init__(self) -> None:
+    def __init__(self, plan=None, original=None, target=None, amount=None) -> None:
         self.currency = ['TWD', 'USD', 'JPY', 'GBP', 'THB', 'KRW']
         self.nation = ["TAIWAN", "UNITED STATES", "JAPAN", "GREAT BRITAIN", "THAILAND", "SOUTH KOREA"]
-        self.urls = ["https://www.esunbank.com.tw/bank/personal/deposit/rate/forex/foreign-exchange-rates"]
         self.twd_rate = {}
         self.usd_rate = {}
         self.jpy_rate = {}
         self.gbp_rate = {} #england pound
         self.thb_rate = {} #thailand bath
         self.krw_rate = {} #korea won
+        self.all = {"TWD": self.twd_rate, "USD": self.usd_rate, "JPY": self.jpy_rate, "GBP": self.gbp_rate, "THB": self.thb_rate, "KRW": self.krw_rate}
         self.driver = webdriver.Edge('./msedgedriver.exe')
+        self.original = original
+        self.target = target
+        self.amount = amount
+        print(self.original, self.target, self.amount)
         self.get_data()
+        if plan == "A":
+            self.plan_A()
+        else:
+            self.plan_B()
 
 
     def get_taiwan(self):
+        # print("get taiwan exchange rate")
+        # url = "https://www.esunbank.com.tw/bank/personal/deposit/rate/forex/foreign-exchange-rates"
+        # res = requests.get(url)
+        # soup = BeautifulSoup(res.text, 'html.parser')
+        # # beautiful find specific tag and id
+        # content = soup.find('div', id='exchangeRate')
+        # # find using class name
+        # table = content.find('tbody', class_='l-exchangeRate__table result')
+        # # find all
+        # table2 = table.find_all('tr')
+        # for item in table2:
+        #     # print(item)
+        #     # print("ALL", item.find('div', class_='col-auto px-3 col-lg-5 title-item'))
+        #     name = item.find_all('div', class_="col-1 col-lg-2 title-item title-en")
+        #     if name:
+        #         # remove any character except alphabet
+        #         curr_name = re.sub(r'[^a-zA-Z]', '', name[0].text)
+        #         # print("curr_name", curr_name)
+        #         # curr_name = name[0].text.replace(" ", "")
+        #         exchange_rate = item.find_all('div', class_='SBoardRate')
+        #         if curr_name in self.currency:
+        #             self.twd_rate[curr_name] = float(exchange_rate[0].text)
+        #         # exchange = item.find_all('div', class_='BBoardRate')
+        #         # print("BANK BUY", exchange)
+        #         # exchange = item.find_all('div', class_='SBoardRate')
+        #         # print("BANK SELL", exchange[0].text)
+        # url = 'https://rate.bot.com.tw/xrt/flcsv/0/day'   
+        # rate = requests.get(url)   
+        # rate.encoding = 'utf-8'  
+        # rt = rate.text            
+        # rts = rt.split('\n')      
+        # for i in rts:              
+        #     try:                             
+        #         a = i.split(',')             
+        #         if a[0] == 'KRW':
+        #             self.twd_rate['KRW'] = a[12]
+        #             # self.twd_rate[a[0]] = a[12]
+        #     except:
+        #         break
+        # print("twd_rate", self.twd_rate)
+
         print("get taiwan exchange rate")
-        url = "https://www.esunbank.com.tw/bank/personal/deposit/rate/forex/foreign-exchange-rates"
-        res = requests.get(url)
-        soup = BeautifulSoup(res.text, 'html.parser')
-        # beautiful find specific tag and id
-        content = soup.find('div', id='exchangeRate')
-        # find using class name
-        table = content.find('tbody', class_='l-exchangeRate__table result')
-        # find all
-        table2 = table.find_all('tr')
-        for item in table2:
-            # print(item)
-            # print("ALL", item.find('div', class_='col-auto px-3 col-lg-5 title-item'))
-            name = item.find_all('div', class_="col-1 col-lg-2 title-item title-en")
-            if name:
-                # remove any character except alphabet
-                curr_name = re.sub(r'[^a-zA-Z]', '', name[0].text)
-                # print("curr_name", curr_name)
-                # curr_name = name[0].text.replace(" ", "")
-                exchange_rate = item.find_all('div', class_='SBoardRate')
-                if curr_name in self.currency:
-                    self.twd_rate[curr_name] = float(exchange_rate[0].text)
-                # exchange = item.find_all('div', class_='BBoardRate')
-                # print("BANK BUY", exchange)
-                # exchange = item.find_all('div', class_='SBoardRate')
-                # print("BANK SELL", exchange[0].text)
-
-
-        url = 'https://rate.bot.com.tw/xrt/flcsv/0/day'   
-        rate = requests.get(url)   
-        rate.encoding = 'utf-8'  
-        rt = rate.text            
-        rts = rt.split('\n')      
-        for i in rts:              
-            try:                             
-                a = i.split(',')             
-                if a[0] == 'KRW':
-                    self.twd_rate['KRW'] = a[12]
-                    # self.twd_rate[a[0]] = a[12]
-            except:
-                break
+        default_url = "https://rate.bot.com.tw/xrt?Lang=zh-TW"
+        curr_name = ["日圓","英鎊", "美金", "泰幣", "韓元"]
+        self.driver.get(default_url)
+        self.driver.current_url
+        contents = self.driver.find_element(By.ID, "ie11andabove").text.split('查詢\n')
+        # print(contents)
+        for content in contents:
+            items = content.replace('\n', '').split(' ')
+            # print(items)
+            if items[0] in curr_name:
+                if items[0] == "日圓":
+                    self.twd_rate['JPY'] = float(items[-3])
+                elif items[0] == "英鎊":
+                    self.twd_rate['GBP'] = float(items[-3])
+                elif items[0] == "美金":
+                    self.twd_rate['USD'] = float(items[-3])
+                elif items[0] == "泰幣":
+                    self.twd_rate['THB'] = float(items[-3])
+                elif items[0] == "韓元":
+                    self.twd_rate['KRW'] = float(items[-5])
         print("twd_rate", self.twd_rate)
+
 
     def get_usd(self):
         print("get united states exchange rate")
@@ -178,7 +208,64 @@ class Calculator:
         self.get_gbp()
         self.get_thb()
         self.get_krw()
+    
+    def plan_A(self):
+        print("In plan A")
+        if self.original == "TWD":
+            res = self.amount / self.twd_rate[self.target]
+        elif self.original == "USD":
+            # print(self.amount, self.usd_rate[self.target])
+            res = self.amount / self.usd_rate[self.target]
+        elif self.original == "JPY":
+            res = self.amount / self.jpy_rate[self.target]
+        elif self.original == "GBP":
+            res = self.amount / self.gbp_rate[self.target]
+        elif self.original == "THB":
+            res = self.amount / self.thb_rate[self.target]
+        elif self.original == "KRW":
+            res = self.amount / self.krw_rate[self.target]
+        print("The result is", res)
+        
+    def plan_B(self):
+        print("In plan B")
+        res = 0
+        visited = set()
+        def helper(current,change_times,value):
+            nonlocal res
+            if current in visited: # already visited
+                return
+            visited.add(current)
+            if len(visited) == change_times+1: # last exchange 
+                res = max(res, value / self.all[current][self.target])
 
+                return
+            change_times += 1
+            for item in self.currency:
+                if item != current:
+                    helper(item, change_times, value / self.all[current][item])
+            visited.remove(current)
+
+        for i in range(len(self.currency)-2):
+            
+            if self.original == "TWD":
+                helper("TWD", i, self.amount)
+                # res = self.amount / self.usd_rate[self.target]
+            elif self.original == "USD":
+                helper("USD", i, self.amount)
+                # res = self.amount / self.usd_rate[self.target]
+            elif self.original == "JPY":
+                helper("JPY", i, self.amount)
+                # res = self.amount / self.jpy_rate[self.target]
+            elif self.original == "GBP":
+                helper("GBP", i, self.amount)
+                # res = self.amount / self.gbp_rate[self.target]
+            elif self.original == "THB":
+                helper("THB", i, self.amount)
+                # res = self.amount / self.thb_rate[self.target]
+            elif self.original == "KRW":
+                helper("KRW", i, self.amount)
+                # res = self.amount / self.krw_rate[self.target]
+        print("The result is", res)
 
 def __init__():
     # print("here")
@@ -188,16 +275,28 @@ def __init__():
     print("Option B: Get maximum value of exchange")
     option = input()
     if option == 'A':
+        plan = "A"
         print("Please input the currency you want to exchange")
-        currency = input()
+        original = input()
         print("Please input the amount of money you want to exchange")
-        amount = input()
+        amount = int(input())
         print("Please input the currency you want to exchange to")
-        exchange = input()
+        target = input()
+    elif option == 'B':
+        plan = "B"
+        print("Please input the currency you want to exchange")
+        original = input()
+        print("Please input the amount of money you want to exchange")
+        amount = int(input())
+        print("Please input the currency you want to exchange to")
+        target = input()
     else:
-        print("B")
+        plan = 1
+        original = 2
+        target = 3
+        amount = 4
+    res = Calculator(plan, original, target, amount)
 
-    res = Calculator()
     
     return 0
 

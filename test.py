@@ -1,11 +1,7 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-
-driver = webdriver.Edge('./msedgedriver.exe')
-driver.get("https://www.google.com/")
-
-element = driver.find_element(By.CLASS_NAME, "gLFyf")
-element.send_keys("My name is Brad")
-while True:
-    pass
-# driver.close()
+a = {"ab":1, "cd":2}
+# b = [1,2,3]
+di = {"1":a}
+print(di["1"])
+a["ab"] = 100
+print(a)
+print(di["1"])
