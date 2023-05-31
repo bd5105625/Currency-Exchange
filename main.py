@@ -33,7 +33,7 @@ class Calculator:
         self.target = target
         self.amount = amount
         print(self.original, self.target, self.amount)
-        self.get_data()
+        self.get_data(plan)
         if plan == "A":
             self.plan_A()
         else:
@@ -41,46 +41,7 @@ class Calculator:
 
 
     def get_taiwan(self):
-        # print("get taiwan exchange rate")
-        # url = "https://www.esunbank.com.tw/bank/personal/deposit/rate/forex/foreign-exchange-rates"
-        # res = requests.get(url)
-        # soup = BeautifulSoup(res.text, 'html.parser')
-        # # beautiful find specific tag and id
-        # content = soup.find('div', id='exchangeRate')
-        # # find using class name
-        # table = content.find('tbody', class_='l-exchangeRate__table result')
-        # # find all
-        # table2 = table.find_all('tr')
-        # for item in table2:
-        #     # print(item)
-        #     # print("ALL", item.find('div', class_='col-auto px-3 col-lg-5 title-item'))
-        #     name = item.find_all('div', class_="col-1 col-lg-2 title-item title-en")
-        #     if name:
-        #         # remove any character except alphabet
-        #         curr_name = re.sub(r'[^a-zA-Z]', '', name[0].text)
-        #         # print("curr_name", curr_name)
-        #         # curr_name = name[0].text.replace(" ", "")
-        #         exchange_rate = item.find_all('div', class_='SBoardRate')
-        #         if curr_name in self.currency:
-        #             self.twd_rate[curr_name] = float(exchange_rate[0].text)
-        #         # exchange = item.find_all('div', class_='BBoardRate')
-        #         # print("BANK BUY", exchange)
-        #         # exchange = item.find_all('div', class_='SBoardRate')
-        #         # print("BANK SELL", exchange[0].text)
-        # url = 'https://rate.bot.com.tw/xrt/flcsv/0/day'   
-        # rate = requests.get(url)   
-        # rate.encoding = 'utf-8'  
-        # rt = rate.text            
-        # rts = rt.split('\n')      
-        # for i in rts:              
-        #     try:                             
-        #         a = i.split(',')             
-        #         if a[0] == 'KRW':
-        #             self.twd_rate['KRW'] = a[12]
-        #             # self.twd_rate[a[0]] = a[12]
-        #     except:
-        #         break
-        # print("twd_rate", self.twd_rate)
+
 
         print("get taiwan exchange rate")
         default_url = "https://rate.bot.com.tw/xrt?Lang=zh-TW"
@@ -91,7 +52,8 @@ class Calculator:
         # print(contents)
         for content in contents:
             items = content.replace('\n', '').split(' ')
-            # print(items)
+            if len(items) > 8:
+                self.twd_rate["USD"] = float(items[-3])
             if items[0] in curr_name:
                 if items[0] == "日圓":
                     self.twd_rate['JPY'] = float(items[-3])
@@ -201,13 +163,27 @@ class Calculator:
         print("krw_rate", self.krw_rate)
 
         
-    def get_data(self):
-        self.get_taiwan()
-        self.get_usd()
-        self.get_jpy()
-        self.get_gbp()
-        self.get_thb()
-        self.get_krw()
+    def get_data(self, plan):
+        if plan == "A":
+            if self.original == "TWD":
+                self.get_taiwan()
+            elif self.original == "USD":
+                self.get_usd()
+            elif self.original == "JPY":
+                self.get_jpy()
+            elif self.original == "GBP":
+                self.get_gbp()
+            elif self.original == "THB":
+                self.get_thb()
+            elif self.original == "KRW":
+                self.get_krw()
+        else:
+            self.get_taiwan()
+            self.get_usd()
+            self.get_jpy()
+            self.get_gbp()
+            self.get_thb()
+            self.get_krw()
     
     def plan_A(self):
         print("In plan A")
@@ -230,46 +206,55 @@ class Calculator:
         print("In plan B")
         res = 0
         visited = set()
-        def helper(current,change_times,value):
+        path = []
+
+        def helper(current, value, temp):
+            # print(current,value)
             nonlocal res
-            if current in visited: # already visited
+            if current in visited:
+                return
+            if current == self.target:
+                if value > res:
+                    res = max(res,value)
+                    path.append(list(temp))
+                    path[-1].append(current)
+                    print(path, res)
                 return
             visited.add(current)
-            if len(visited) == change_times+1: # last exchange 
-                res = max(res, value / self.all[current][self.target])
-
-                return
-            change_times += 1
-            for item in self.currency:
-                if item != current:
-                    helper(item, change_times, value / self.all[current][item])
-            visited.remove(current)
-
-        for i in range(len(self.currency)-2):
+            temp.append(current)
             
-            if self.original == "TWD":
-                helper("TWD", i, self.amount)
-                # res = self.amount / self.usd_rate[self.target]
-            elif self.original == "USD":
-                helper("USD", i, self.amount)
-                # res = self.amount / self.usd_rate[self.target]
-            elif self.original == "JPY":
-                helper("JPY", i, self.amount)
-                # res = self.amount / self.jpy_rate[self.target]
-            elif self.original == "GBP":
-                helper("GBP", i, self.amount)
-                # res = self.amount / self.gbp_rate[self.target]
-            elif self.original == "THB":
-                helper("THB", i, self.amount)
-                # res = self.amount / self.thb_rate[self.target]
-            elif self.original == "KRW":
-                helper("KRW", i, self.amount)
-                # res = self.amount / self.krw_rate[self.target]
+            for item in self.currency:
+                if item != current and item != self.original:
+                    helper(item, value / self.all[current][item], temp)
+            visited.remove(current)
+            temp.pop()
+
+            
+        if self.original == "TWD":
+            helper("TWD", self.amount, [])
+            # res = self.amount / self.usd_rate[self.target]
+        elif self.original == "USD":
+            helper("USD", self.amount, [])
+            # res = self.amount / self.usd_rate[self.target]
+        elif self.original == "JPY":
+            helper("JPY", self.amount, [])
+            # res = self.amount / self.jpy_rate[self.target]
+        elif self.original == "GBP":
+            helper("GBP", self.amount, [])
+            # res = self.amount / self.gbp_rate[self.target]
+        elif self.original == "THB":
+            helper("THB", self.amount, [])
+            # res = self.amount / self.thb_rate[self.target]
+        elif self.original == "KRW":
+            helper("KRW", self.amount, [])
+            # res = self.amount / self.krw_rate[self.target]
         print("The result is", res)
+        print("The path is", path)
 
 def __init__():
     # print("here")
     # one input
+    print("In this program, you can exchange 6 kinds of currency, TWD, USD, JPY, GBP, THB, KRW\n")
     print("What do you want to do?\n")
     print("Option A: Exchange to specific currency")
     print("Option B: Get maximum value of exchange")
@@ -284,11 +269,11 @@ def __init__():
         target = input()
     elif option == 'B':
         plan = "B"
-        print("Please input the currency you want to exchange")
+        print("Please type in the currency you want to exchange")
         original = input()
-        print("Please input the amount of money you want to exchange")
+        print("Please type in the amount of money you want to exchange")
         amount = int(input())
-        print("Please input the currency you want to exchange to")
+        print("Please type the currency you want to exchange to")
         target = input()
     else:
         plan = 1
